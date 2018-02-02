@@ -1,16 +1,16 @@
 # csv-converter
-Converts CSV formats to another with new encoding and delimiters 
+Converts CSV formats to another with new encoding and delimiters. Basicly change delimiters to another one. Also changes source character encoding to new one.
 
 # Some features
  - This is a PHP script. 
- - Can detect encoding of input file.
- -  Can detect field delimiter and  line ending of input CSV. 
+ - Can detect encoding of source CSV (only Linux, using file tool).
+ - Can automaticly detect field delimiter and  line ending of input CSV. 
  - Low memory consumption with large CSV files.
- - Has a switch that trim fields and clear CRLF of source CSV.
+ - It can trim fields and clears CRLF of source CSV.
 
 **Also you can specify:**
- - Encoding of input file.
- - Delimiter and line ending of input file. 
+ - Encoding of input (source) file.
+ - Delimiter and line ending of input (source) file. 
  - Encoding of output file.
  - Delimiter and line ending of output file. 
 
