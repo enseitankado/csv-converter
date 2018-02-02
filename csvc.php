@@ -208,7 +208,7 @@
 	if ( count($args) == 0)
 	{
 		echo "\n Converts CSV formats to another one with new encoding and delimiters.\n";
-		echo "\nUsage: \n  php csvc.php --file source.csv --input_encoding=ISO-8859-9 --output_encoding=UTF-8 --input_delimiter=',' --input_line_ending='\\r\\n'\n";
+		echo "\nUsage: \n  php csvc.php --file=source.csv --input_encoding=ISO-8859-9 --output_encoding=UTF-8 --input_delimiter=',' --input_line_ending='\\r\\n'\n";
 		$lwidth = 36;
 		$format = "\n\t%-20.s\t %s";
 		echo sprintf($format, "--file","File name of input file.");
