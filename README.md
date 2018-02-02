@@ -20,7 +20,7 @@ Converts CSV formats to another with new encoding and delimiters
     Converts CSV formats to another with new encoding and delimiters.
     
     Usage:
-      php csvc.php --file source.csv --input_encoding=ISO-8859-9 --output_encoding=UTF-8 --input_delimiter=',' --input_line_ending='\r\n'
+      php csvc.php --file=source.csv --input_encoding=ISO-8859-9 --output_encoding=UTF-8 --input_delimiter=',' --input_line_ending='\r\n'
     
             --file                   File name of input file.
             --out_file               File name of output file. Default <filename>.csv
@@ -85,4 +85,8 @@ Converts CSV formats to another with new encoding and delimiters
     
     Output file not specified. Exiting...
 
+
+# Helpfull
+
+To detect source CSV's encoding: You can use https://2cyr.com/decode/?lang=en
 
