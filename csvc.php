@@ -98,6 +98,11 @@
 		return $_ARG;
 	} 
 
+	function is_linux() {
+		return (strtoupper(substr(PHP_OS, 0, 3)) != 'WIN');
+	}
+	
+	
 	/*
 	Written by Özgür Koca
 	at https://github.com/enseitankado
@@ -109,14 +114,15 @@
 		$out_line_ending,
 		$out_delimiter,
 		$create_report = false,
-		$list_header = false,
+		&$list_header = false,
 		$clear_crlf = false,
 		$line_ending = "\r\n",
 		$delimiter = ",",
 		$verbose = false, 
 		$trim_fields = false,
 		$to_encoding=null, 
-		$from_encoding=null		
+		$from_encoding=null,
+		$mysqlimport_usage = false
 		)
 	{
 		global $time_start;
@@ -154,12 +160,24 @@
 				
 				if ($list_header && $rec == 1)
 				{
-					echo "\n\033[32mListing header:\033[0m\n";
+					if (is_linux())
+						echo "\n\033[32mListing header:\033[0m\n";
+					else
+						echo "\nListing header:\n";
 					echo implode(',', $arr)."\n\n";
 				}
 				
+				if ($rec == 1)
+					$list_header = implode(',', $arr);
+				
+				if ($mysqlimport_usage)
+					return;
+				
 				if (2 == $rec) {
-					echo "\033[32mProcessing.... To break press ctrl^c.\033[0m\n";
+					if (is_linux())
+						echo "\033[32mProcessing.... To break press ctrl^c.\033[0m\n";
+					else
+						echo "Processing.... To break press ctrl^c.\n";
 				}
 				
 				if ($out_handle) {
@@ -172,13 +190,18 @@
 					die("Output file not specified. Exiting...\n");
 				
 				if ($verbose)
-				if ($rec % rand(900, 1000) == 0) {
-					echo sprintf("\033[32m[%'.06d] ", $secs = (microtime(true) - $time_start));
+				if ($rec % rand(1900, 11000) == 0) {
+					if (is_linux())
+						echo sprintf("\033[32m[%'.06d] ", $secs = (microtime(true) - $time_start));
+					else
+						echo sprintf("[%'.06d] ", $secs = (microtime(true) - $time_start));
 					echo sprintf("Speed: %d,", $rec / $secs);
 					echo ' Rec: '.number_format($rec, 0, ".", ",").',';
 					echo ' Mem: '.sprintf("%.2f", memory_get_peak_usage(true)/1048576).'MB, ';
-					echo " Wrote to: '$outfile'";					
-					echo " # \033[0m".implode(',', $arr)."\n";				
+					echo " Wrote to: '$outfile'";
+					if (is_linux())
+					echo " # \033[0m";
+					echo implode(',', $arr)."\n";				
 				}
 				$rec++;
 				
@@ -211,21 +234,36 @@
 		echo "\nUsage: \n  php csvc.php --file=source.csv --input_encoding=ISO-8859-9 --output_encoding=UTF-8 --input_delimiter=',' --input_line_ending='\\r\\n'\n";
 		$lwidth = 36;
 		$format = "\n\t%-20.s\t %s";
-		echo sprintf($format, "--file","File name of input file.");
-		echo sprintf($format, "--out_file","File name of output file. Default <filename>.csv");
+		echo sprintf($format, "--input_file","File name of input file.");
+		echo sprintf($format, "--output_file","File name of output file.");
 		echo sprintf($format, "--limit", "Only process first X lines from file.");
 		echo sprintf($format, "--input_encoding", "Encoding of the input file. If not specified, it is tried to be detected from the source file.");
 		echo sprintf($format, "--output_encoding", "Encoding of the output file. If not specified, it is assumed to be utf8.");
-		echo sprintf($format, "--input_line_ending", "Line ending char(s) of input file. Otherwise it will be autodetected. The char(s) must be specified in single quotes.");
-		echo sprintf($format, "--input_delimiter", "Delimiter char(s) of input file. Otherwise it will be autodetected. The char(s) must be specified in single quotes. ");
+		echo sprintf($format, "--input_line_ending", "Line ending char(s) of input file. The char(s) must be specified in single quotes. Otherwise it will be autodetected.");
+		echo sprintf($format, "--input_delimiter", "Delimiter char(s) of input file. The char(s) must be specified in single quotes. Otherwise it will be autodetected.");
 		echo sprintf($format, "--output_line_ending", "Line ending char(s) of output file. Default: \\r\\n");
 		echo sprintf($format, "--output_delimiter", "Delimiter char(s) of fields. Default: ,");
 		echo sprintf($format, "--capture_limit", "Capture limit for delimiter end line ending analsis. Default: 10KB ");
 		echo sprintf($format, "-t", "Trim field values");
 		echo sprintf($format, "-h", "Show header. Header dumped from first line.");
 		echo sprintf($format, "-c", "Clear CRLF (Carie return/Line feed) in fields.");
-		echo sprintf($format, "-v", "Verbose mode. Random rows printed out in processing");
+		echo sprintf($format, "-v", "Verbose mode. Random rows printed out during processing");
 		echo sprintf($format, "-r", "Create report. Named with <filename>.report");
+		echo sprintf($format, "-m", "Print mysqlimport usage.");
+		$format = "\n\t%-10.s\t %s";
+		echo "\n\nSome supported delimiters:";
+		echo sprintf($format, "comma", 		",");
+		echo sprintf($format, "semicolon", 	";");
+		echo sprintf($format, "tab", 		'\'\t\'');
+		echo sprintf($format, "pipe", 		"|");
+		echo sprintf($format, "colon", 		":");		
+		echo "\n\nSome supported line endings:";
+		echo sprintf($format, "CRLF", 		'\'\r\n\'');
+		echo sprintf($format, "LF", 		'\'\n\'');
+		echo sprintf($format, "CR", 		'\'\r\'');
+		echo sprintf($format, "LFCR", 		'\'\n\r\'');
+		echo sprintf($format, "pipe", 		"|");
+		
 		die("\n");
 	}
 	
@@ -239,11 +277,14 @@
 	$delimiter_value = isset($args['input_delimiter']) ? str_replace(array('\r','\n','\t'),array("\r","\n","\t"),$args['input_delimiter']) : null;
 	
 	$verbose = isset($args['v']) ? true : false;
-	$fname = $args['file'];
-	$outfile = isset($args['out_file']) ? $args['out_file'] : null;
+	$fname = $args['input_file'];
+	$outfile = isset($args['output_file']) ? $args['output_file'] : null;
 	$trim_fields = $args['t'];
 	$list_header = $args['h'];
 	$clear_crlf = $args['c'];
+	$mysql_import = $args['m'];
+	
+	
 	$create_report = $args['r'];
 	
 	echo "\n";
@@ -251,13 +292,16 @@
 	if ((int) $mexec != 0)
 		echo sprintf("Max PHP execution time: \033[31m%s\033[0m\n\n", $mexec);
 	
-	if ($input_encoding == null && $output_encoding == null)
+	$to_encoding = 'UTF-8';
+	if ($input_encoding == null && $output_encoding == null and is_linux() )
 	{
 		echo "input_encoding and output_encoding doesnt specified.\n";		
 		$ret = exec("file --mime-encoding --mime-type $fname");
 		$from_encoding = substr($ret, strpos($ret, 'charset=')+8, strlen($ret));
-		$to_encoding = 'UTF-8';
+		if (is_linux())
 		echo "Automaticaly detected input_encoding=\033[32m$from_encoding\033[0m and output_encoding=\033[32m$to_encoding\033[0m will be used.\n";
+		else
+		echo "Automaticaly detected input_encoding=$from_encoding and output_encoding$to_encoding will be used.\n";
 	}
 	
 	if ($line_ending_value == null && $delimiter_value == null)
@@ -269,8 +313,13 @@
 		$delimiter_key = "{$report['delimiter']['key']}";
 		$line_ending_value = "{$report['line_ending']['value']}";
 		$delimiter_value = $report['delimiter']['value'];
-		echo "\nAuto detected input_line_ending=\033[32m$line_ending_key($line_ending_value)\033[0m,";
-		echo " input_delimiter=\033[32m$delimiter_key($delimiter_value)\033[0m\n";
+		if (is_linux())	{
+			echo "\nAuto detected input_line_ending=\033[32m$line_ending_key(".trim($line_ending_value).")\033[0m,";
+			echo " input_delimiter=\033[32m$delimiter_key($delimiter_value)\033[0m\n";
+		} else {
+			echo "\nAuto detected input_line_ending=$line_ending_key(".trim($line_ending_value)."),";
+			echo " input_delimiter=$delimiter_key($delimiter_value)\n";
+		}
 	}
 	
 	parse_csv(
@@ -287,8 +336,15 @@
 		$verbose, 
 		$trim_fields, 
 		$output_encoding, 
-		$input_encoding
+		$input_encoding, 
+		$mysql_import
 	);
 	
-	echo "The end!\n";
+		
+	
+	if ($mysql_import) {
+		echo "\nMysqlimport usage:\n mysqlimport --ignore-lines=1 --fields-terminated-by=$delimiter_value --columns='$list_header' --default-character-set=$output_encoding  --local -u root -p Database $outfile\n";
+	}
+	
+	echo "\nThe end!\n";
 ?>
